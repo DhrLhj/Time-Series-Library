@@ -99,6 +99,7 @@ class Exp_Classification(Exp_Basic):
             self.model.train()
             epoch_time = time.time()
             for i, (batch_x, label, padding_mask) in enumerate(train_loader):
+                print('xshape',batch_x.shape)
                 iter_count += 1
                 model_optim.zero_grad()
 
@@ -106,6 +107,7 @@ class Exp_Classification(Exp_Basic):
                 padding_mask = padding_mask.float().to(self.device)
                 label = label.to(self.device)
 
+                print('batch_x',batch_x.shape)
                 outputs = self.model(batch_x, padding_mask, None, None)
                 loss = criterion(outputs, label.long().squeeze(-1))
                 train_loss.append(loss.item())
@@ -150,9 +152,9 @@ class Exp_Classification(Exp_Basic):
 
         preds = []
         trues = []
-        folder_path = './test_results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        # folder_path = './test_results/' + setting + '/'
+        # if not os.path.exists(folder_path):
+        #     os.makedirs(folder_path)
 
         self.model.eval()
         with torch.no_grad():
@@ -176,9 +178,9 @@ class Exp_Classification(Exp_Basic):
         accuracy = cal_accuracy(predictions, trues)
 
         # result save
-        folder_path = './results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        # folder_path = './results/' + setting + '/'
+        # if not os.path.exists(folder_path):
+        #     os.makedirs(folder_path)
 
         print('accuracy:{}'.format(accuracy))
         f = open("result_classification.txt", 'a')

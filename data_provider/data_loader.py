@@ -630,7 +630,7 @@ class UEAloader(Dataset):
         # pre_process
         normalizer = Normalizer()
         self.feature_df = normalizer.normalize(self.feature_df)
-        print(len(self.all_IDs))
+        # print(len(self.all_IDs))
 
     def load_all(self, root_path, file_list=None, flag=None):
         """
@@ -661,8 +661,10 @@ class UEAloader(Dataset):
         return all_df, labels_df
 
     def load_single(self, filepath):
+        print('dataset',filepath)
         df, labels = load_data.load_from_tsfile_to_dataframe(filepath, return_separate_X_and_y=True,
                                                              replace_missing_vals_with='NaN')
+        # print(df.loc[0].shape)
         labels = pd.Series(labels, dtype="category")
         self.class_names = labels.cat.categories
         labels_df = pd.DataFrame(labels.cat.codes,
@@ -672,12 +674,13 @@ class UEAloader(Dataset):
             lambda x: len(x)).values  # (num_samples, num_dimensions) array containing the length of each series
 
         horiz_diffs = np.abs(lengths - np.expand_dims(lengths[:, 0], -1))
-
+        # print('horiz',horiz_diffs)
         if np.sum(horiz_diffs) > 0:  # if any row (sample) has varying length across dimensions
             df = df.applymap(subsample)
 
         lengths = df.applymap(lambda x: len(x)).values
         vert_diffs = np.abs(lengths - np.expand_dims(lengths[0, :], 0))
+        # print(vert_diffs)
         if np.sum(vert_diffs) > 0:  # if any column (dimension) has varying length across samples
             self.max_seq_len = int(np.max(lengths[:, 0]))
         else:
@@ -687,8 +690,15 @@ class UEAloader(Dataset):
         # Then concatenate into a (num_samples * seq_len, feat_dim) dataframe, with multiple rows corresponding to the
         # sample index (i.e. the same scheme as all datasets in this project)
 
+        # print('after',df.shape)
+        # print('df[0]',df.shape[0])
+        # print('colu',df.columns)
         df = pd.concat((pd.DataFrame({col: df.loc[row, col] for col in df.columns}).reset_index(drop=True).set_index(
             pd.Series(lengths[row, 0] * [row])) for row in range(df.shape[0])), axis=0)
+        # print('LEN',lengths[3, 0])
+        # print('df',df.shape)
+        # print('f',df.loc[0].shape)
+        # print('label',labels_df)
 
         # Replace NaN values
         grp = df.groupby(by=df.index)

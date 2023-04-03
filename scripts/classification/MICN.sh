@@ -1,4 +1,5 @@
 export CUDA_VISIBLE_DEVICES=4
+# fail
 
 model_name=MICN
 

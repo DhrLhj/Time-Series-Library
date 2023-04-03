@@ -34,30 +34,36 @@ class TimesBlock(nn.Module):
         )
 
     def forward(self, x):
+        print(x.shape)
         B, T, N = x.size()
         period_list, period_weight = FFT_for_Period(x, self.k)
+        print('period_list',period_list.shape)
+        print('period_weight',period_weight.shape)
 
         res = []
         for i in range(self.k):
             period = period_list[i]
             # padding
             if (self.seq_len + self.pred_len) % period != 0:
-                length = (
-                                 ((self.seq_len + self.pred_len) // period) + 1) * period
+                length = (((self.seq_len + self.pred_len) // period) + 1) * period
                 padding = torch.zeros([x.shape[0], (length - (self.seq_len + self.pred_len)), x.shape[2]]).to(x.device)
                 out = torch.cat([x, padding], dim=1)
             else:
                 length = (self.seq_len + self.pred_len)
                 out = x
             # reshape
+            print('out-reshape-before',out.shape)
             out = out.reshape(B, length // period, period,
                               N).permute(0, 3, 1, 2).contiguous()
+            print('out-reshape-after',out.shape)
             # 2D conv: from 1d Variation to 2d Variation
             out = self.conv(out)
             # reshape back
             out = out.permute(0, 2, 3, 1).reshape(B, -1, N)
+            print('out',out.shape)
             res.append(out[:, :(self.seq_len + self.pred_len), :])
         res = torch.stack(res, dim=-1)
+        print(res.shape)
         # adaptive aggregation
         period_weight = F.softmax(period_weight, dim=1)
         period_weight = period_weight.unsqueeze(
@@ -186,7 +192,6 @@ class Model(nn.Module):
         # TimesNet
         for i in range(self.layer):
             enc_out = self.layer_norm(self.model[i](enc_out))
-
         # Output
         # the output transformer encoder/decoder embeddings don't include non-linearity
         output = self.act(enc_out)
@@ -199,6 +204,7 @@ class Model(nn.Module):
         return output
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
+        print('x_enc forward:',x_enc.shape)
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
             return dec_out[:, -self.pred_len:, :]  # [B, L, D]
